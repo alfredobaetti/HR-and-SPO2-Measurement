@@ -32,7 +32,7 @@ def main():
     spo2: SPO2 = SPO2()
     TSfr, TShr, JsonHR, JsonSPO2 = getTS()
 
-    for filename in glob.glob(f'C:/Users/baett/OneDrive/Desktop/Proyecto final/Dataset proyecto/{SUBJECT}/*.png'):
+    for filename in glob.glob(f'/{SUBJECT}/*.png'):
         frame = cv.imread(filename)
         grayf = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         face = detector(grayf, 0)
@@ -111,7 +111,7 @@ def main():
         if len(OX_SAT) > 40:
             for i in range(4):        
                 OX_SAT.pop(0)
-                
+
         json_index+=1
         cv.imshow('frame', frame)
         #frame_array.append(frame)
