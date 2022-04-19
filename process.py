@@ -1,3 +1,6 @@
+from ast import Return
+from mimetypes import init
+from typing import final
 import numpy as np
 import dlib
 import cv2 as cv
@@ -9,63 +12,64 @@ from libraries.spo2 import SPO2
 from libraries.json_processing import getTS
 from config import SUBJECT, HR_WINDOW_SIZE, SPO2_WINDOW_SIZE, SPO2_PROCESSING_DELAY
 
-
-def main():
-    times_hr = []
-    time_spo2 = []
-    signal_hr = []
-    HR = []
-    BLUE1_AVG = []
-    GREEN1_AVG = []
-    RED1_AVG = []
-    BLUE2_AVG = []
-    GREEN2_AVG = []
-    RED2_AVG = []
-    OX_SAT = []
-    seconds_to_spo2 = 0
-    json_index = 0
-    t0 = time.time()
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-    roi: ROI = ROI()
-    heart_rate: HeartRate = HeartRate()
-    spo2: SPO2 = SPO2()
-    TSfr, TShr, JsonHR, JsonSPO2 = getTS()
-
-    for filename in glob.glob(f'/{SUBJECT}/*.png'):
-        frame = cv.imread(filename)
+class Process:
+    def __init__(self) -> None:
+        self.times_hr = []
+        self.time_spo2 = []
+        self.signal_hr = []
+        self.HR = []
+        self.BLUE1_AVG = []
+        self.GREEN1_AVG = []
+        self.RED1_AVG = []
+        self.BLUE2_AVG = []
+        self.GREEN2_AVG = []
+        self.RED2_AVG = []
+        self.OX_SAT = []
+        self.seconds_to_spo2 = 0
+        self.json_index = 0
+        self.t0 = time.time()
+        self.detector = dlib.get_frontal_face_detector()
+        self.predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+        self.roi: ROI = ROI()
+        self.heart_rate: HeartRate = HeartRate()
+        self.spo2: SPO2 = SPO2()
+        self.TSfr, self.TShr, self.JsonHR, self.JsonSPO2 = getTS()
+    
+    def process(self, frame):
+        #for filename in glob.glob(f'C:/Users/baett/OneDrive/Desktop/Proyecto final/Dataset proyecto/{SUBJECT}/*.png'):
+        #self.frame = cv.imread(self.filename)
         grayf = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        face = detector(grayf, 0)
+        face = self.detector(grayf, 0)
         if len(face) > 0:
-            times_hr.append(time.time() - t0)
-            time_spo2.append(time.time() - t0)
-            shape = predictor(grayf, face[0])
-            shape = roi.shape_to_np(shape)
-            ROI1, ROI2 = roi.get_cheeks(frame, shape)  
+            self.times_hr.append(time.time() - self.t0)
+            self.time_spo2.append(time.time() -self.t0)
+            shape = self.predictor(grayf, face[0])
+            shape = self.roi.shape_to_np(shape)
+            ROI1, ROI2 = self.roi.get_cheeks(frame, shape)  
 
             # Getting HR signal    
-            green_hr_signal = roi.get_hr_signal(ROI1, ROI2)
-            signal_hr.append(green_hr_signal)
+            green_hr_signal = self.roi.get_hr_signal(ROI1, ROI2)
+            self.signal_hr.append(green_hr_signal)
 
             # Gettign SPO2 signal
-            b1_avg, g1_avg, r1_avg, b2_avg, g2_avg, r2_avg = roi.get_average_values(ROI1, ROI2)
+            b1_avg, g1_avg, r1_avg, b2_avg, g2_avg, r2_avg = self.roi.get_average_values(ROI1, ROI2)
 
-            BLUE1_AVG.append(b1_avg)
-            GREEN1_AVG.append(g1_avg)
-            RED1_AVG.append(r1_avg)
+            self.BLUE1_AVG.append(b1_avg)
+            self.GREEN1_AVG.append(g1_avg)
+            self.RED1_AVG.append(r1_avg)
+            
+            self.BLUE2_AVG.append(b2_avg)
+            self.GREEN2_AVG.append(g2_avg)
+            self.RED2_AVG.append(r2_avg)
 
-            BLUE2_AVG.append(b2_avg)
-            GREEN2_AVG.append(g2_avg)
-            RED2_AVG.append(r2_avg)
-
-            seconds_to_spo2 += 1
+            self.seconds_to_spo2 += 1
 
         # SPO2 measurement
-        if len(GREEN1_AVG) == SPO2_WINDOW_SIZE:
-            if seconds_to_spo2 >= SPO2_PROCESSING_DELAY: 
-                ROI1_psd, ROI2_psd = roi.get_psd_roi(BLUE1_AVG, GREEN1_AVG, RED1_AVG, BLUE2_AVG, GREEN2_AVG, RED2_AVG, time_spo2)
-                V1_bgr = np.stack((BLUE1_AVG, GREEN1_AVG, RED1_AVG), axis=-1)
-                V2_bgr = np.stack((BLUE2_AVG, GREEN2_AVG, RED2_AVG), axis=-1)
+        if len(self.GREEN1_AVG) == SPO2_WINDOW_SIZE:
+            if self.seconds_to_spo2 >= SPO2_PROCESSING_DELAY: 
+                ROI1_psd, ROI2_psd = self.roi.get_psd_roi(self.BLUE1_AVG, self.GREEN1_AVG, self.RED1_AVG, self.BLUE2_AVG, self.GREEN2_AVG, self.RED2_AVG, self.time_spo2)
+                V1_bgr = np.stack((self.BLUE1_AVG, self.GREEN1_AVG, self.RED1_AVG), axis=-1)
+                V2_bgr = np.stack((self.BLUE2_AVG, self.GREEN2_AVG, self.RED2_AVG), axis=-1)
 
                 ROI_max = max([ROI1_psd, ROI2_psd])
 
@@ -74,49 +78,57 @@ def main():
                 if ROI2_psd == ROI_max:
                     V_bgr = V2_bgr
 
-                oxygen_saturation = spo2.get_spo2(V_bgr)
-                OX_SAT.append(oxygen_saturation)
+                oxygen_saturation = self.spo2.get_spo2(V_bgr)
+                self.OX_SAT.append(oxygen_saturation)
 
             for i in range(round(SPO2_WINDOW_SIZE/10)):
-                BLUE1_AVG.pop(0) 
-                GREEN1_AVG.pop(0)
-                RED1_AVG.pop(0)
-                BLUE2_AVG.pop(0) 
-                GREEN2_AVG.pop(0)
-                RED2_AVG.pop(0)
-                time_spo2.pop(0)
+                self.BLUE1_AVG.pop(0) 
+                self.GREEN1_AVG.pop(0)
+                self.RED1_AVG.pop(0)
+                self.BLUE2_AVG.pop(0) 
+                self.GREEN2_AVG.pop(0)
+                self.RED2_AVG.pop(0)
+                self.time_spo2.pop(0)
 
         # HR measurement
-        if len(signal_hr) == HR_WINDOW_SIZE:
-            signal_processed_hr = roi.process_hr_signal(signal_hr, times_hr)
-            heartrate = heart_rate.get_hr(signal_processed_hr)
-            HR.append(heartrate)
+        if len(self.signal_hr) == HR_WINDOW_SIZE:
+            signal_processed_hr = self.roi.process_hr_signal(self.signal_hr, self.times_hr)
+            heartrate = self.heart_rate.get_hr(signal_processed_hr)
+            self.HR.append(heartrate)
             for i in range(round(HR_WINDOW_SIZE/10)):
-                signal_hr.pop(0) 
-                times_hr.pop(0)
+                self.signal_hr.pop(0) 
+                self.times_hr.pop(0)
 
-        if len(HR) > 10:
-            cv.putText(frame, '{:.0f}bpm'.format(np.mean(HR)), (200, 50), cv.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
-            cv.putText(frame, '{:.0f}%'.format(np.mean(OX_SAT)), (200, 90), cv.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 2)
-            try:    
-                cv.putText(frame, '{:.0f}bpm'.format(JsonHR[json_index]), (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1.2, (255, 0, 0), 2)
-                cv.putText(frame, '{:.0f}%'.format(JsonSPO2[json_index]), (50, 90), cv.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
-            except:
-                continue
-
-        if len(HR) > 20:
+        if len(self.HR) > 20:
             for i in range(2):
-                HR.pop(0)
+                self.HR.pop(0)
 
-        if len(OX_SAT) > 40:
+        if len(self.OX_SAT) > 40:
             for i in range(4):        
-                OX_SAT.pop(0)
+                self.OX_SAT.pop(0)
 
-        json_index+=1
-        cv.imshow('frame', frame)
-        #frame_array.append(frame)
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            break
+        self.json_index+=1
 
-if __name__ == '__main__':
-    main()
+        if len(self.HR) > 10:
+            final_HR = np.mean(self.HR)
+            final_SPO2 = np.mean(self.OX_SAT)
+            
+            return final_HR, final_SPO2
+
+        return 0, 0
+        #cv.putText(self.frame, '{:.0f}bpm'.format(np.mean(self.HR)), (200, 50), cv.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
+        #    cv.putText(self.frame, '{:.0f}%'.format(np.mean(self.OX_SAT)), (200, 90), cv.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 2)
+        #    try:    
+        #        cv.putText(self.frame, '{:.0f}bpm'.format(self.JsonHR[json_index]), (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1.2, (255, 0, 0), 2)
+        #        cv.putText(self.frame, '{:.0f}%'.format(self.JsonSPO2[json_index]), (50, 90), cv.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
+        #    except:
+        #        return
+#
+#
+        #cv.imshow('frame', self.frame)
+        ##frame_array.append(frame)
+        #if cv.waitKey(1) & 0xFF == ord('q'):
+        #    return
+
+    #if __name__ == '__main__':
+    #    main()

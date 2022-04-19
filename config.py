@@ -3,7 +3,7 @@ import cv2 as cv
 capture = cv.VideoCapture(0)
 fps = capture.get(cv.CAP_PROP_FPS)
 
-SUBJECT = "01-03"
+SUBJECT = "01-01"
 
 HR_WINDOW_SIZE = 300
 SPO2_WINDOW_SIZE = 60

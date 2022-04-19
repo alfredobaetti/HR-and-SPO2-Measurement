@@ -28,10 +28,10 @@ class ROI:
         return coords
 
     def get_cheeks(self, frame, shape):
-        cv.rectangle(frame,(shape[54][0], shape[29][1]), #draw rectangle on right and left cheeks
-                    (shape[25][0],shape[33][1]), (0,255,0), 0)
-        cv.rectangle(frame, (shape[5][0], shape[29][1]), 
-                (shape[48][0],shape[33][1]), (0,255,0), 0) 
+        #cv.rectangle(frame,(shape[54][0], shape[29][1]), #draw rectangle on right and left cheeks
+        #            (shape[25][0],shape[33][1]), (0,255,0), 0)
+        #cv.rectangle(frame, (shape[5][0], shape[29][1]), 
+        #        (shape[48][0],shape[33][1]), (0,255,0), 0) 
         #cv.rectangle(frame, (shape[20][0], shape[71][1]), 
         #        (shape[23][0],shape[74][1]), (0,255,0), 0) 
         ROI1 = frame[shape[29][1]:shape[33][1], #right cheek
